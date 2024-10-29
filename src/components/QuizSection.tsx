@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Forward, Clock } from 'lucide-react';
 import { Question } from '../types';
 
@@ -28,30 +28,31 @@ const QuizSection: React.FC<QuizSectionProps> = ({
   onTimeout,
 }) => {
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
-  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
+  const timerIdRef = useRef<NodeJS.Timeout | null>(null);
 
   const startTimer = () => {
-    if (timerId) clearInterval(timerId); // Clear any existing timer
-    const newTimer = setInterval(() => {
+    if (timerIdRef.current) clearInterval(timerIdRef.current); // Clear any existing timer
+    timerIdRef.current = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
-          clearInterval(newTimer);
+          clearInterval(timerIdRef.current!);
           onTimeout();
           return 0;
         }
         return prevTime - 1;
       });
     }, 1000);
-    setTimerId(newTimer);
   };
 
-  // Start the timer on component mount
+  // Start the timer on initial mount only
   useEffect(() => {
-    startTimer(); // Start once initially
-    return () => timerId && clearInterval(timerId); // Clean up on unmount
-  }, []); // Empty dependency array so it only runs once
+    startTimer();
+    return () => {
+      if (timerIdRef.current) clearInterval(timerIdRef.current); // Cleanup on unmount
+    };
+  }, []); // Empty dependency array to run only once on mount
 
-  // Manually reset timer on "Next" or "Skip"
+  // Reset timer manually when clicking "Next" or "Skip"
   const handleNext = () => {
     setTimeLeft(QUESTION_TIME_LIMIT);
     startTimer();
