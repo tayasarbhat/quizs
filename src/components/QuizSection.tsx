@@ -14,8 +14,6 @@ interface QuizSectionProps {
   onTimeout: () => void;
 }
 
-const QUESTION_TIME_LIMIT = 60; // 1 minute in seconds
-
 const QuizSection: React.FC<QuizSectionProps> = ({
   question,
   currentQuestionIndex,
@@ -27,11 +25,12 @@ const QuizSection: React.FC<QuizSectionProps> = ({
   onSkip,
   onTimeout,
 }) => {
-  const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
+  const TOTAL_TIME_LIMIT = totalQuestions * 60; // Total time in seconds
+  const [timeLeft, setTimeLeft] = useState(TOTAL_TIME_LIMIT);
   const timerIdRef = useRef<NodeJS.Timeout | null>(null);
 
-  const startTimer = () => {
-    if (timerIdRef.current) clearInterval(timerIdRef.current); // Clear any existing timer
+  // Start the timer on initial mount only
+  useEffect(() => {
     timerIdRef.current = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
@@ -42,26 +41,17 @@ const QuizSection: React.FC<QuizSectionProps> = ({
         return prevTime - 1;
       });
     }, 1000);
-  };
 
-  // Start the timer on initial mount only
-  useEffect(() => {
-    startTimer();
     return () => {
-      if (timerIdRef.current) clearInterval(timerIdRef.current); // Cleanup on unmount
+      if (timerIdRef.current) clearInterval(timerIdRef.current);
     };
   }, []); // Empty dependency array to run only once on mount
 
-  // Reset timer manually when clicking "Next" or "Skip"
   const handleNext = () => {
-    setTimeLeft(QUESTION_TIME_LIMIT);
-    startTimer();
     onNext();
   };
 
   const handleSkip = () => {
-    setTimeLeft(QUESTION_TIME_LIMIT);
-    startTimer();
     onSkip();
   };
 
@@ -87,7 +77,7 @@ const QuizSection: React.FC<QuizSectionProps> = ({
           <div
             className="h-2 bg-indigo-600 rounded-full transition-all duration-300"
             style={{
-              width: `${(timeLeft / QUESTION_TIME_LIMIT) * 100}%`,
+              width: `${(timeLeft / TOTAL_TIME_LIMIT) * 100}%`,
             }}
           />
         </div>
