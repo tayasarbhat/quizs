@@ -28,22 +28,41 @@ const QuizSection: React.FC<QuizSectionProps> = ({
   onTimeout,
 }) => {
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
+  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    setTimeLeft(QUESTION_TIME_LIMIT); // Reset timer only when currentQuestionIndex changes
-    const timer = setInterval(() => {
+  const startTimer = () => {
+    if (timerId) clearInterval(timerId); // Clear any existing timer
+    const newTimer = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
-          clearInterval(timer);
+          clearInterval(newTimer);
           onTimeout();
           return 0;
         }
         return prevTime - 1;
       });
     }, 1000);
+    setTimerId(newTimer);
+  };
 
-    return () => clearInterval(timer); // Clean up timer on unmount
-  }, [currentQuestionIndex, onTimeout]); // Reset only when the question index changes
+  // Start the timer on component mount
+  useEffect(() => {
+    startTimer(); // Start once initially
+    return () => timerId && clearInterval(timerId); // Clean up on unmount
+  }, []); // Empty dependency array so it only runs once
+
+  // Manually reset timer on "Next" or "Skip"
+  const handleNext = () => {
+    setTimeLeft(QUESTION_TIME_LIMIT);
+    startTimer();
+    onNext();
+  };
+
+  const handleSkip = () => {
+    setTimeLeft(QUESTION_TIME_LIMIT);
+    startTimer();
+    onSkip();
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -107,14 +126,14 @@ const QuizSection: React.FC<QuizSectionProps> = ({
           Previous
         </button>
         <button
-          onClick={onSkip}
+          onClick={handleSkip}
           className="flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200"
         >
           <Forward className="w-5 h-5 mr-2" />
           Skip
         </button>
         <button
-          onClick={onNext}
+          onClick={handleNext}
           className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200"
         >
           {currentQuestionIndex === totalQuestions - 1 ? (
