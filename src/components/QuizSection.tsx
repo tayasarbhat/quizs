@@ -30,7 +30,7 @@ const QuizSection: React.FC<QuizSectionProps> = ({
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
 
   useEffect(() => {
-    setTimeLeft(QUESTION_TIME_LIMIT);
+    setTimeLeft(QUESTION_TIME_LIMIT); // Reset timer only when currentQuestionIndex changes
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
@@ -42,8 +42,8 @@ const QuizSection: React.FC<QuizSectionProps> = ({
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [currentQuestionIndex, onTimeout]);
+    return () => clearInterval(timer); // Clean up timer on unmount
+  }, [currentQuestionIndex, onTimeout]); // Reset only when the question index changes
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
