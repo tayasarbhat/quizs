@@ -26,7 +26,7 @@ const App: React.FC = () => {
 
   const fetchQuestionsFromGoogleSheet = async () => {
     try {
-      const googleSheetUrl = 'https://sheets.googleapis.com/v4/spreadsheets/1p2BSkCJE-ihLk3AlW1lU_1wc4VPEyUwDwERG3L-_uhg/values/Sheet1!A:N?key=AIzaSyDYaHabUZ6Ce5Q3VnXd0kSWSNd6XuD0nFY';
+      const googleSheetUrl = 'https://script.google.com/macros/s/AKfycbwPhOWFa43GMXW3V9B2VDFxuiOOr1h8M1j-PJgBhBjoH4PBAk_oG2lbXyb63k0EXxF-/exec';
       const response = await fetch(googleSheetUrl);
       if (!response.ok) {
         throw new Error('Network response was not ok ' + response.statusText);
