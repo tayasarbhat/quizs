@@ -10,6 +10,8 @@ interface LeaderboardEntry {
 }
 
 const App: React.FC = () => {
+  const [subjects, setSubjects] = useState<string[]>(['Math', 'Science', 'History']); // Add your subjects here
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
@@ -19,17 +21,20 @@ const App: React.FC = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
-  // Replace {SCRIPT_ID} with your actual Apps Script deployment ID
   const scriptURL = 'https://script.google.com/macros/s/AKfycbyyQBxGYjqMDBVx2Vxb82JanGWYWyjQnpmbWYEhZQWpSxaZbTN5VT6UF5HfIpGZRCAO/exec';
 
   const handleNameSubmit = (name: string) => {
     setPlayerName(name);
-    fetchQuestionsFromGoogleSheet();
   };
 
-  const fetchQuestionsFromGoogleSheet = async () => {
+  const handleSubjectSelect = (subject: string) => {
+    setSelectedSubject(subject);
+    fetchQuestionsFromGoogleSheet(subject);
+  };
+
+  const fetchQuestionsFromGoogleSheet = async (subject: string) => {
     try {
-      const response = await fetch(scriptURL);
+      const response = await fetch(`${scriptURL}?subject=${subject}`);
       if (!response.ok) {
         throw new Error('Network response was not ok ' + response.statusText);
       }
@@ -92,8 +97,7 @@ const App: React.FC = () => {
 
   const completeQuiz = async () => {
     setQuizCompleted(true);
-    
-    // Update leaderboard via Apps Script
+
     try {
       const response = await fetch(scriptURL, {
         method: 'POST',
@@ -103,12 +107,12 @@ const App: React.FC = () => {
         body: JSON.stringify({
           name: playerName,
           score: score,
+          subject: selectedSubject,
         }),
       });
 
       const data = await response.json();
       if (data.status === 'success') {
-        // Update local leaderboard
         setLeaderboard([...leaderboard, { name: playerName, score }]);
       } else {
         console.error('Error updating leaderboard:', data);
@@ -126,13 +130,27 @@ const App: React.FC = () => {
     setQuizStarted(false);
     setPlayerName('');
     setQuestions([]);
+    setSelectedSubject(null);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        {!playerName && (
-          <NameInput onNameSubmit={handleNameSubmit} />
+        {!playerName && <NameInput onNameSubmit={handleNameSubmit} />}
+        
+        {playerName && !selectedSubject && (
+          <div className="flex flex-col items-center">
+            <h2 className="text-2xl font-semibold mb-4">Select a Subject</h2>
+            {subjects.map((subject) => (
+              <button
+                key={subject}
+                onClick={() => handleSubjectSelect(subject)}
+                className="px-4 py-2 m-2 bg-blue-500 text-white rounded shadow"
+              >
+                {subject}
+              </button>
+            ))}
+          </div>
         )}
         
         {quizStarted && !quizCompleted && questions.length > 0 && (
