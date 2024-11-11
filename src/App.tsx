@@ -19,6 +19,9 @@ const App: React.FC = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
+  // Replace {SCRIPT_ID} with your actual Apps Script deployment ID
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbyyQBxGYjqMDBVx2Vxb82JanGWYWyjQnpmbWYEhZQWpSxaZbTN5VT6UF5HfIpGZRCAO/exec';
+
   const handleNameSubmit = (name: string) => {
     setPlayerName(name);
     fetchQuestionsFromGoogleSheet();
@@ -26,33 +29,17 @@ const App: React.FC = () => {
 
   const fetchQuestionsFromGoogleSheet = async () => {
     try {
-      const googleSheetUrl = 'https://sheets.googleapis.com/v4/spreadsheets/1p2BSkCJE-ihLk3AlW1lU_1wc4VPEyUwDwERG3L-_uhg/values/Sheet1!A:N?key=AIzaSyDYaHabUZ6Ce5Q3VnXd0kSWSNd6XuD0nFY';
-      const response = await fetch(googleSheetUrl);
+      const response = await fetch(scriptURL);
       if (!response.ok) {
         throw new Error('Network response was not ok ' + response.statusText);
       }
       const data = await response.json();
-      if (data.values && data.values.length > 1) {
-        const formattedQuestions = data.values.slice(1).map((row: string[]) => ({
-          question: row[0],
-          options: row.slice(1, 5),
-          answer: parseInt(row[5]) - 1,
-          explanation: row[6] || 'No explanation provided.'
-        }));
-
-        // Extract leaderboard data from columns M and N
-        const leaderboardData = data.values.slice(1)
-          .filter(row => row[12] && row[13]) // Filter rows with name and score
-          .map(row => ({
-            name: row[12],
-            score: parseInt(row[13])
-          }));
-
-        setQuestions(formattedQuestions);
-        setLeaderboard(leaderboardData);
+      if (data.questions && data.questions.length > 0) {
+        setQuestions(data.questions);
+        setLeaderboard(data.leaderboard || []);
         setQuizStarted(true);
       } else {
-        alert("The Google Sheet does not contain valid questions.");
+        alert("No valid questions received from server.");
       }
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -106,23 +93,26 @@ const App: React.FC = () => {
   const completeQuiz = async () => {
     setQuizCompleted(true);
     
-    // Update leaderboard in Google Sheet
+    // Update leaderboard via Apps Script
     try {
-      const range = `Sheet1!M${leaderboard.length + 2}:N${leaderboard.length + 2}`;
-      const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/1p2BSkCJE-ihLk3AlW1lU_1wc4VPEyUwDwERG3L-_uhg/values/${range}?valueInputOption=RAW&key=AIzaSyDYaHabUZ6Ce5Q3VnXd0kSWSNd6XuD0nFY`;
-      
-      await fetch(updateUrl, {
-        method: 'PUT',
+      const response = await fetch(scriptURL, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          values: [[playerName, score]],
+          name: playerName,
+          score: score,
         }),
       });
 
-      // Update local leaderboard
-      setLeaderboard([...leaderboard, { name: playerName, score }]);
+      const data = await response.json();
+      if (data.status === 'success') {
+        // Update local leaderboard
+        setLeaderboard([...leaderboard, { name: playerName, score }]);
+      } else {
+        console.error('Error updating leaderboard:', data);
+      }
     } catch (error) {
       console.error('Error updating leaderboard:', error);
     }
